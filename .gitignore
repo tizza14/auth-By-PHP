@@ -1,0 +1,56 @@
+# ===========================
+# Dependencies
+# ===========================
+node_modules/
+frontend/node_modules/
+backend/vendor/
+
+# ===========================
+# Build output
+# ===========================
+frontend/dist/
+backend/public/build/
+backend/public/hot
+backend/public/storage
+
+# ===========================
+# Environment & secrets
+# ===========================
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ===========================
+# Laravel specific
+# ===========================
+backend/storage/*.key
+backend/storage/pail/
+backend/bootstrap/cache/*.php
+!backend/bootstrap/cache/.gitignore
+backend/.phpunit.result.cache
+backend/.phpunit.cache/
+
+# ===========================
+# Logs
+# ===========================
+*.log
+backend/storage/logs/*.log
+
+# ===========================
+# OS & editor files
+# ===========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.fleet/
+.nova/
+.zed/
+
+# ===========================
+# Vite cache
+# ===========================
+frontend/.vite/
