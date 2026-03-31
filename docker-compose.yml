@@ -1,0 +1,64 @@
+services:
+  # PHP + Laravel
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: auth_app
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=laravel
+      - DB_USERNAME=laravel
+      - DB_PASSWORD=secret
+    networks:
+      - auth_network
+
+  # MySQL
+  db:
+    image: mysql:8.0
+    container_name: auth_db
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - auth_network
+
+  # Vue Frontend (dev server)
+  frontend:
+    image: node:20-alpine
+    container_name: auth_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - auth_network
+
+volumes:
+  db_data:
+
+networks:
+  auth_network:
+    driver: bridge
