@@ -13,8 +13,9 @@
 5. [第四階段：Controller（處理邏輯）](#第四階段controller處理邏輯)
 6. [第五階段：Factory（產生測試資料）](#第五階段factory產生測試資料)
 7. [第六階段：Redis（快取與加速）](#第六階段redis快取與加速)
-8. [常用 Artisan 指令](#常用-artisan-指令)
-8. [學習順序建議](#學習順序建議)
+8. [第七階段：Kubernetes（容器編排）](#第七階段kubernetes容器編排)
+9. [常用 Artisan 指令](#常用-artisan-指令)
+10. [學習順序建議](#學習順序建議)
 
 ---
 
@@ -371,6 +372,132 @@ Redis  = 旁邊的小抽屜（放常用的東西，拿起來更快）
 
 ---
 
+## 第七階段：Kubernetes（容器編排）
+
+Kubernetes（k8s）是管理多個 container 的系統，比 docker-compose 更強大，適合正式環境與多節點部署。
+
+### Docker Compose vs Kubernetes
+
+| | Docker Compose | Kubernetes |
+|---|---|---|
+| 適合情境 | 本機開發 | 正式環境、雲端 |
+| 管理單位 | container | Pod（可包含多個 container）|
+| 自動重啟 | 需設定 | 內建，Pod 掛掉自動重建 |
+| 水平擴展 | 手動 | `replicas: 3` 一行搞定 |
+| 負載均衡 | 無 | 內建 Service 負載均衡 |
+| 設定管理 | `.env` 檔 | ConfigMap / Secret |
+
+### 這個專案的 k8s 結構
+
+```
+k8s/
+├── namespace.yaml       # 隔離用的命名空間
+├── secret.yaml          # 敏感資料（DB 密碼等）
+├── configmap.yaml       # 非敏感設定（host / port）
+├── mysql/
+│   ├── pvc.yaml         # 持久化儲存（資料不會因 Pod 重啟而消失）
+│   ├── deployment.yaml  # MySQL Pod 定義
+│   └── service.yaml     # 讓其他 Pod 能連到 MySQL
+├── redis/
+│   ├── deployment.yaml
+│   └── service.yaml
+├── app/
+│   ├── deployment.yaml  # Laravel Pod（imagePullPolicy: Never 用本地 image）
+│   └── service.yaml     # NodePort 30800 → 對外開放
+└── frontend/
+    ├── deployment.yaml
+    └── service.yaml     # NodePort 30173 → 對外開放
+```
+
+### 核心概念
+
+**Pod** — k8s 最小部署單位，通常包含一個 container
+```yaml
+spec:
+  containers:
+    - name: mysql
+      image: mysql:8.0
+```
+
+**Deployment** — 管理 Pod，設定幾個副本、如何更新
+```yaml
+spec:
+  replicas: 1   # 要跑幾個 Pod
+```
+
+**Service** — 讓 Pod 可以被其他 Pod 或外部存取
+```yaml
+# ClusterIP（預設）：只有叢集內部可連
+# NodePort：開放給外部，透過 localhost:nodePort 存取
+type: NodePort
+nodePort: 30800
+```
+
+**ConfigMap** — 存放非敏感的環境變數
+```yaml
+data:
+  DB_HOST: mysql   # 直接用 Service 名稱，k8s 內建 DNS 會解析
+```
+
+**Secret** — 存放敏感資料（密碼等），base64 編碼儲存
+```yaml
+stringData:
+  DB_PASSWORD: secret
+```
+
+**PVC（PersistentVolumeClaim）** — 申請持久化儲存空間，讓 MySQL 資料不隨 Pod 消失
+```yaml
+resources:
+  requests:
+    storage: 1Gi
+```
+
+### 本地啟動步驟（Docker Desktop）
+
+**前置條件：** 在 Docker Desktop → Settings → Kubernetes → Enable Kubernetes
+
+```bash
+# 1. build 後端 image（需在 k8s 能存取的 Docker daemon 中）
+docker build -t auth-by-php-app:latest ./backend
+
+# 2. 建立所有 k8s 資源
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/mysql/
+kubectl apply -f k8s/redis/
+kubectl apply -f k8s/app/
+kubectl apply -f k8s/frontend/
+
+# 或一次套用所有（遞迴）
+kubectl apply -R -f k8s/
+
+# 3. 查看狀態
+kubectl get all -n auth-app
+```
+
+### 常用 kubectl 指令
+
+```bash
+kubectl get pods -n auth-app              # 查看所有 Pod 狀態
+kubectl get services -n auth-app          # 查看所有 Service
+kubectl logs -n auth-app <pod-name>       # 查看 Pod 日誌
+kubectl describe pod -n auth-app <pod>    # 詳細診斷 Pod
+kubectl exec -it -n auth-app <pod> -- sh  # 進入 Pod 內部
+
+# 刪除所有資源
+kubectl delete -R -f k8s/
+```
+
+### 服務對外 Port
+
+| 服務 | 存取網址 |
+|---|---|
+| Laravel API | `http://localhost:30800` |
+| Vue 前端 | `http://localhost:30173` |
+
+---
+
 ## 常用 Artisan 指令
 
 ```bash
@@ -408,6 +535,8 @@ php artisan tinker                   # 進入互動式環境
 5. Factory（產生測試資料，驗證功能）
         ↓
 6. Redis（加速 Cache / Session / Queue）
+        ↓
+7. Kubernetes（容器編排、正式環境部署）
 ```
 
 **理解核心概念後，下一步可以學：**
@@ -416,3 +545,4 @@ php artisan tinker                   # 進入互動式環境
 - Form Request（把驗證邏輯獨立出 Controller）
 - Policy & Gate（權限控制）
 - Queue & Job（背景任務搭配 Redis）
+- Ingress（k8s 的反向代理，取代 NodePort）
