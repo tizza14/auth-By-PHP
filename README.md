@@ -117,14 +117,11 @@ docker-compose down
 
 ### 套用所有設定
 
+**必須先建立 namespace**，再套用其餘資源（避免字母順序導致的 NotFound 錯誤）：
+
 ```bash
 kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/mysql/
-kubectl apply -f k8s/redis/
-kubectl apply -f k8s/app/
-kubectl apply -f k8s/frontend/
+kubectl apply -R -f k8s/
 ```
 
 ### 開啟瀏覽器（K8s NodePort）
