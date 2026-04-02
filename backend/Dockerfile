@@ -16,10 +16,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# 啟動腳本
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# 複製應用程式碼（vendor/ 已在 .dockerignore 排除）
+COPY . .
+
+# Build 階段安裝 PHP 依賴
+RUN composer install --no-interaction --optimize-autoloader
+
+# 設定 storage/cache 權限
+RUN chmod -R 775 storage bootstrap/cache
+
+RUN chmod +x /var/www/entrypoint.sh
 
 EXPOSE 8000
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/var/www/entrypoint.sh"]

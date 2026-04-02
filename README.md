@@ -50,13 +50,14 @@ auth-By-PHP/
 │       ├── deployment.yaml
 │       └── service.yaml
 ├── backend/                      # Laravel API
-│   ├── Dockerfile
-│   ├── entrypoint.sh             # 容器啟動腳本
-│   ├── app_custom/               # 自訂程式碼（啟動時覆蓋 Laravel 預設）
+│   ├── Dockerfile                # build 時 COPY 程式碼 + composer install
+│   ├── .dockerignore
+│   ├── entrypoint.sh             # 執行期：設定 .env、migrate、serve
+│   ├── app_custom/               # 自訂程式碼（已複製至對應位置）
 │   │   ├── AuthController.php    # 認證邏輯（register / login / logout / me）
 │   │   ├── User.php              # User Model（含 HasApiTokens）
 │   │   └── api.php               # API 路由定義
-│   └── ...                       # Laravel 框架檔案（自動產生）
+│   └── ...                       # Laravel 框架檔案
 └── frontend/                     # Vue 3 前端
     ├── vite.config.js
     └── src/
@@ -110,10 +111,12 @@ docker-compose down
 ### 前置需求
 
 1. Docker Desktop 已啟用 Kubernetes（Settings → Kubernetes → Enable Kubernetes）
-2. 已在本地 build app 映像：
+2. Build app 映像（**每次修改後端程式碼後都要重 build**）：
    ```bash
    docker build -t auth-by-php-app:latest ./backend
    ```
+
+> image 在 build 時已包含完整程式碼與 PHP 依賴，`entrypoint.sh` 啟動時只負責設定 DB 連線與執行 Migration。
 
 ### 套用所有設定
 

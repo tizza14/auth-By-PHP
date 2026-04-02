@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git rm:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl logs:*)"
     ]
   }
 }
