@@ -10,18 +10,22 @@ const routes = [
   {
     path: '/dashboard',
     component: DashboardView,
-    // 守衛：未登入就跳回登入頁
-    beforeEnter: (to, from, next) => {
-      if (localStorage.getItem('token')) {
-        next()
-      } else {
-        next('/login')
-      }
-    }
+    meta: { requiresAuth: true }
   }
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes
 })
+
+// 全域守衛：統一在這裡檢查，不用每個路由各自設定
+router.beforeEach((to, _from, next) => {
+  if (to.meta.requiresAuth && !localStorage.getItem('token')) {
+    next('/login')
+  } else {
+    next()
+  }
+})
+
+export default router

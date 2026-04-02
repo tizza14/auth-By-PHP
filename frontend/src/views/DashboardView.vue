@@ -35,17 +35,19 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authApi } from '../api/auth'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
-const user = ref(null)
-const loading = ref(true)
+const authStore = useAuthStore()
+const user = authStore.user ? ref(authStore.user) : ref(null)
+const loading = ref(!authStore.user)
 const logoutLoading = ref(false)
 
-// 頁面載入時取得使用者資訊
+// 頁面載入時取得使用者資訊（有快取則不重複打 API）
 onMounted(async () => {
   try {
-    const response = await authApi.me()
-    user.value = response.data
+    await authStore.fetchMe()
+    user.value = authStore.user
   } catch {
     // Token 無效，回到登入頁
     localStorage.removeItem('token')
@@ -56,10 +58,12 @@ onMounted(async () => {
 })
 
 async function handleLogout() {
+  if (logoutLoading.value) return
   logoutLoading.value = true
   try {
     await authApi.logout()
   } finally {
+    authStore.clearUser()
     localStorage.removeItem('token')
     router.push('/login')
   }

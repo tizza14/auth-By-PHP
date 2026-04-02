@@ -40,6 +40,7 @@ const loading = ref(false)
 const error = ref('')
 
 async function handleLogin() {
+  if (loading.value) return
   loading.value = true
   error.value = ''
 
